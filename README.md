@@ -1,6 +1,10 @@
-# BadmintonBusinessMatchWhiteboard
+![Badminton Business Match Whiteboard logo](public/logo.svg)
+
+# Badminton Business Match Whiteboard
 
 A simple one-page whiteboard for recording badminton money-match results. Track each player’s win/loss, calculate totals, clear the board, and share results.
+
+[Live demo](https://saberliou.github.io/BadmintonBusinessMatchWhiteboard/)
 
 ## Development
 
