@@ -22,6 +22,7 @@ export function useBoard({ storage = defaultStorage(), key = STORAGE_KEY } = {})
   const title = ref(DEFAULT_TITLE)
   const players = ref([...DEFAULT_PLAYERS])
   const rows = ref(makeRows(1, players.value.length))
+  const struck = ref(players.value.map(() => false)) // 各選手總分是否已劃掉
 
   load()
 
@@ -37,6 +38,11 @@ export function useBoard({ storage = defaultStorage(), key = STORAGE_KEY } = {})
 
   function clearScores() {
     rows.value = makeRows(1, players.value.length)
+    struck.value = players.value.map(() => false)
+  }
+
+  function toggleStruck(c) {
+    struck.value[c] = !struck.value[c]
   }
 
   // ---------- 局 ----------
@@ -57,6 +63,7 @@ export function useBoard({ storage = defaultStorage(), key = STORAGE_KEY } = {})
   function addPlayer() {
     players.value.push(`選手${String.fromCharCode(65 + (players.value.length % 26))}`)
     rows.value.forEach((row) => row.push(null))
+    struck.value.push(false)
   }
 
   /** @returns {boolean} 是否成功移除（至少保留 MIN_PLAYERS 位） */
@@ -64,12 +71,14 @@ export function useBoard({ storage = defaultStorage(), key = STORAGE_KEY } = {})
     if (players.value.length <= MIN_PLAYERS) return false
     players.value.splice(c, 1)
     rows.value.forEach((row) => row.splice(c, 1))
+    struck.value.splice(c, 1)
     return true
   }
 
   function movePlayer(from, to) {
     moveItem(players.value, from, to)
     rows.value.forEach((row) => moveItem(row, from, to))
+    moveItem(struck.value, from, to)
   }
 
   function renamePlayer(c, name) {
@@ -89,6 +98,7 @@ export function useBoard({ storage = defaultStorage(), key = STORAGE_KEY } = {})
       rows.value = data.rows.map((row) =>
         players.value.map((_, c) => (typeof row?.[c] === 'number' ? row[c] : null)),
       )
+      struck.value = players.value.map((_, c) => data.struck?.[c] === true)
       if (typeof data.title === 'string') title.value = data.title
     } catch {
       // 資料損毀時沿用預設值
@@ -96,12 +106,17 @@ export function useBoard({ storage = defaultStorage(), key = STORAGE_KEY } = {})
   }
 
   watch(
-    [title, players, rows],
+    [title, players, rows, struck],
     () => {
       try {
         storage?.setItem(
           key,
-          JSON.stringify({ title: title.value, players: players.value, rows: rows.value }),
+          JSON.stringify({
+            title: title.value,
+            players: players.value,
+            rows: rows.value,
+            struck: struck.value,
+          }),
         )
       } catch {
         // 無痕模式或空間已滿時無法保存，不影響使用
@@ -114,10 +129,12 @@ export function useBoard({ storage = defaultStorage(), key = STORAGE_KEY } = {})
     title,
     players,
     rows,
+    struck,
     displayTitle,
     totals,
     setScore,
     clearScores,
+    toggleStruck,
     addRow,
     removeRow,
     moveRow,

@@ -10,10 +10,11 @@ import ScoreTable from './components/ScoreTable.vue'
 import ScorePicker from './components/ScorePicker.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import AppToast from './components/AppToast.vue'
+import DoneInput from './components/DoneInput.vue'
 import { PencilIcon, CheckIcon } from './components/icons'
 
 const board = useBoard()
-const { title, players, rows, totals, displayTitle } = board
+const { title, players, rows, struck, totals, displayTitle } = board
 const { isDark, toggleTheme } = useTheme()
 const { dialog, askConfirm, closeDialog } = useConfirm()
 const { showToast } = useToast()
@@ -111,14 +112,14 @@ const pickerName = computed(() => (picker.value ? playerLabel(picker.value.c) : 
         class="flex min-w-0 flex-1 items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl"
       >
         <span class="shrink-0 text-2xl">🏸</span>
-        <input
+        <DoneInput
           v-model="title"
-          class="-ml-1.5 min-w-0 flex-1 rounded-lg bg-transparent px-1.5 py-1 outline-none placeholder:text-slate-400 hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-sky-400 dark:hover:bg-slate-800/60 dark:focus:bg-slate-900"
+          wrapper-class="-ml-1.5 flex-1"
+          input-class="w-full rounded-lg bg-transparent px-1.5 py-1 outline-none placeholder:text-slate-400 hover:bg-slate-200/60 focus:bg-white focus:ring-2 focus:ring-sky-400 dark:hover:bg-slate-800/60 dark:focus:bg-slate-900"
           :placeholder="DEFAULT_TITLE"
           maxlength="30"
           aria-label="標題"
-          @blur="title = title.trim()"
-          @keydown.enter="$event.target.blur()"
+          @done="title = title.trim()"
         />
       </h1>
       <button
@@ -151,6 +152,7 @@ const pickerName = computed(() => (picker.value ? playerLabel(picker.value.c) : 
       :players="players"
       :rows="rows"
       :totals="totals"
+      :struck="struck"
       :editing="editing"
       :active-cell="picker"
       @pick="openPicker"
@@ -160,6 +162,7 @@ const pickerName = computed(() => (picker.value ? playerLabel(picker.value.c) : 
       @remove-row="removeRow"
       @move-row="board.moveRow"
       @move-player="board.movePlayer"
+      @toggle-struck="board.toggleStruck"
     />
 
     <button

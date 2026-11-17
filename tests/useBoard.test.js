@@ -136,6 +136,47 @@ describe('選手', () => {
   })
 })
 
+describe('劃掉總分', () => {
+  it('預設皆未劃掉，toggleStruck 切換', () => {
+    const b = useBoard({ storage })
+    expect(b.struck.value).toEqual([false, false, false, false])
+    b.toggleStruck(1)
+    expect(b.struck.value).toEqual([false, true, false, false])
+    b.toggleStruck(1)
+    expect(b.struck.value[1]).toBe(false)
+  })
+
+  it('隨選手新增、移除、移動', () => {
+    const b = useBoard({ storage })
+    b.toggleStruck(0)
+    b.movePlayer(0, 2)
+    expect(b.struck.value).toEqual([false, false, true, false])
+    b.addPlayer()
+    expect(b.struck.value).toHaveLength(5)
+    b.removePlayer(2)
+    expect(b.struck.value).toEqual([false, false, false, false])
+  })
+
+  it('clearScores 一併重設', () => {
+    const b = useBoard({ storage })
+    b.toggleStruck(3)
+    b.clearScores()
+    expect(b.struck.value).toEqual([false, false, false, false])
+  })
+
+  it('保存與載入，舊資料沒有 struck 時預設未劃掉', async () => {
+    const b = useBoard({ storage })
+    b.toggleStruck(2)
+    await nextTick()
+    expect(useBoard({ storage }).struck.value).toEqual([false, false, true, false])
+
+    storage = memoryStorage({
+      [STORAGE_KEY]: JSON.stringify({ players: ['甲', '乙'], rows: [[1, -1]] }),
+    })
+    expect(useBoard({ storage }).struck.value).toEqual([false, false])
+  })
+})
+
 describe('保存', () => {
   it('變更後寫入 storage', async () => {
     const b = useBoard({ storage })

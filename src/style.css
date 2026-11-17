@@ -26,3 +26,8 @@ body {
 .fade-leave-to {
   opacity: 0;
 }
+
+/* 白板表格：自身負責垂直捲動，表頭才能固定置頂（扣除頁首、新增一局按鈕與底部操作列） */
+.board-scroll {
+  max-height: max(16rem, calc(100dvh - 14.5rem - env(safe-area-inset-bottom)));
+}

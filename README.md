@@ -1,10 +1,24 @@
-![Badminton Business Match Whiteboard logo](public/logo.svg)
+<p align="center">
+  <img src="public/logo.svg" alt="Badminton Business Match Whiteboard logo" />
+</p>
 
-# Badminton Business Match Whiteboard
+<h1 align="center">Badminton Business Match Whiteboard</h1>
 
-A simple one-page whiteboard for recording badminton money-match results. Track each player’s win/loss, calculate totals, clear the board, and share results.
+<p align="center">
+  A simple one-page whiteboard for recording badminton money-match results.<br />
+  <a href="https://saberliou.github.io/BadmintonBusinessMatchWhiteboard/">Live demo</a>
+</p>
 
-[Live demo](https://saberliou.github.io/BadmintonBusinessMatchWhiteboard/)
+## Features
+
+- Record each round with a tap (+2, +1, -1, -2); totals update automatically, and a new round is added once the last one is filled.
+- Rounds where wins and losses don't cancel out are flagged with ⚠.
+- The player row stays pinned to the top while scrolling through rounds.
+- A toggle under each total strikes it out, e.g. once that player has settled up.
+- Text inputs show a ✓ button while typing, since mobile keyboards don't always have a "Done" key.
+- Edit mode: add, remove, and drag to reorder players and rounds.
+- Share the board as a PNG image (falls back to download when sharing isn't supported).
+- Light and dark themes; everything is saved in the browser's localStorage.
 
 ## Development
 
@@ -22,18 +36,138 @@ npm run format   # Format with Prettier (`npm run format:check` to check only)
 
 Tech stack: Vue 3 + Vite + Tailwind CSS v4, tested with Vitest + Vue Test Utils, linted with ESLint (`eslint-plugin-vue`) and formatted with Prettier.
 
-## Project Structure
+## Project Architecture
+
+### Structure
 
 ```
 src/
 ├─ App.vue              # Page layout: header, whiteboard, bottom action bar
-├─ components/          # ScoreTable, ScorePicker, ConfirmDialog, AppToast, icons
-├─ composables/         # useBoard (data & persistence), useDragSort, useConfirm, useToast, useTheme
-└─ utils/               # score (pure functions), renderImage, shareImage
+├─ components/          # UI only, props in / emits out: ScoreTable, ScorePicker, DoneInput,
+│                       #   ConfirmDialog, AppToast, icons
+├─ composables/         # State & logic: useBoard (data & persistence), useDragSort,
+│                       #   useConfirm, useToast, useTheme
+└─ utils/               # Pure functions, no Vue: score, renderImage, shareImage
 tests/                  # Vitest tests
+```
+
+### File dependencies
+
+Arrows point from the importing file to the imported one.
+
+```text
+                               index.html
+                                   │
+                                main.js ───────▶ style.css
+                                   │
+                           ┌───────▼────────┐
+                           │    App.vue     │      ← orchestrator: wires data to UI
+                           └───────┬────────┘
+     ┌─────────────┬─────────────┬─┴───────────┬─────────────┬─────────────┐
+     │             │             │             │             │             │
+     ▼             ▼             ▼             ▼             ▼             ▼
+ ScoreTable ──▶ DoneInput   ScorePicker  ConfirmDialog   AppToast      useBoard ───┐
+  │   │   │        │             │             │             │         useTheme    │
+  │   │   │        ▼             │             ▼             ▼         shareImage  │
+  │   │   └──▶ icons.js          │        useConfirm     useToast          │       │
+  │   ▼                          │        (singleton)    (singleton)       ▼       │
+  │ useDragSort                  │                                   renderImage   │
+  ▼                              ▼                                                 │
+ score.js ◀──────────────────────┴─────────────────────────────────────────────────┘
+```
+
+Omitted to keep the diagram readable: `App.vue` also imports `icons.js` and `score.js`, and `ScoreTable.vue` imports `MIN_PLAYERS` from `useBoard`.
+
+### Data flow when entering a score
+
+```text
+  user taps a cell
+       │
+       ▼
+ ┌────────────┐  emit pick(r,c)   ┌──────────┐   open    ┌─────────────┐
+ │ ScoreTable │ ────────────────▶ │ App.vue  │ ────────▶ │ ScorePicker │
+ └────────────┘                   └──────────┘           └──────┬──────┘
+       ▲                               ▲   │                    │
+       │                               └───┼── emit select(v) ──┘
+       │ props: rows / totals              │ board.setScore()
+       │                                   ▼
+       │                          ┌─────────────────┐
+       └───────────────────────── │    useBoard     │ ──┐ last round filled
+                                  │  rows / totals  │ ◀─┘ → auto addRow
+                                  └────────┬────────┘
+                       computed totals     │     deep watch
+                      ┌────────────────────┴───────────────────┐
+                      ▼                                        ▼
+               score.js                                localStorage
+            columnTotals()                              "bbmw-state"
+```
+
+### Strike out a total
+
+```text
+  user taps the toggle under a total
+       │
+       ▼
+ ┌────────────┐  emit toggle-struck(c)  ┌──────────┐  board.toggleStruck(c)  ┌─────────────┐
+ │ ScoreTable │ ──────────────────────▶ │ App.vue  │ ──────────────────────▶ │  useBoard   │
+ └────────────┘                         └──────────┘                         │   struck    │
+       ▲                                                                     └──────┬──────┘
+       │ props: struck → total gets a line-through                                  │
+       └────────────────────────────────────────────────────────────────────────────┤
+                                                                                    │ deep watch
+                                                                                    ▼
+                                                                              localStorage
+```
+
+`struck` follows players when they're added, removed, or reordered, and is reset by "Clear". It only affects the on-screen board; shared images always show plain totals.
+
+### Delete and clear
+
+```text
+ delete (edit mode) / "Clear" button
+             │
+             ▼
+     needs confirmation? ──── no (empty round) ───────┐
+             │ yes                                    │
+             ▼                                        │
+   askConfirm() → Promise                             │
+             │                                        │
+             ▼                                        │
+      ConfirmDialog                                   │
+   confirm / cancel / Esc                             │
+        │         │                                   │
+     cancel    confirm                                │
+        │         └──────────────┐                    │
+        ▼                        ▼                    ▼
+      abort         removeRow / removePlayer / clearScores
+                                 │
+                                 ▼
+                      showToast → AppToast
+```
+
+### Share image
+
+```text
+ "Share" → shareBoardImage → renderBoardImage (Canvas) → canvasToFile (PNG)
+                                                               │
+                                                  navigator.canShare?
+                                                    │              │
+                                                   yes        no / failed
+                                                    ▼              ▼
+                                            Web Share API    <a download>
+                                                          + toast "Image downloaded"
 ```
 
 ## Deployment
 
 Every push to `main` is linted, tested, built, and deployed to GitHub Pages by GitHub Actions (`.github/workflows/deploy.yml`):
+
+```text
+ push main → npm ci → lint → format:check → vitest → vite build → GitHub Pages
+```
+
 https://saberliou.github.io/BadmintonBusinessMatchWhiteboard
+
+## License
+
+[MIT](LICENSE) © saberLiou

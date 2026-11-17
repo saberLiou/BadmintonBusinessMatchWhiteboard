@@ -4,12 +4,15 @@ import { ref, watch } from 'vue'
 import { fmt, scoreClass, rowSum, rowFilled } from '../utils/score'
 import { MIN_PLAYERS } from '../composables/useBoard'
 import { useDragSort } from '../composables/useDragSort'
-import { GripIcon, RemoveIcon } from './icons'
+import { GripIcon, RemoveIcon, StrikeIcon } from './icons'
+import DoneInput from './DoneInput.vue'
 
 const props = defineProps({
   players: { type: Array, required: true },
   rows: { type: Array, required: true },
   totals: { type: Array, required: true },
+  /** 各欄總分是否已劃掉 */
+  struck: { type: Array, default: () => [] },
   editing: { type: Boolean, default: false },
   /** 目前選取中的格子 { r, c } */
   activeCell: { type: Object, default: null },
@@ -23,6 +26,7 @@ const emit = defineEmits([
   'remove-row', // (r)
   'move-row', // (from, to)
   'move-player', // (from, to)
+  'toggle-struck', // (c)
 ])
 
 const tableEl = ref(null)
@@ -47,12 +51,15 @@ const removeClass =
 
 <template>
   <div
-    class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    class="board-scroll overflow-auto overscroll-contain rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
   >
     <table ref="tableEl" class="w-full border-collapse text-center" :class="drag && 'select-none'">
-      <thead>
+      <!-- 表頭固定置頂（以外層容器為捲動範圍） -->
+      <thead
+        class="sticky top-0 z-10 bg-slate-50 shadow-[0_1px_0_var(--color-slate-200)] dark:bg-slate-800 dark:shadow-[0_1px_0_var(--color-slate-700)]"
+      >
         <!-- 編輯模式：選手的刪除與拖曳 -->
-        <tr v-if="editing" class="bg-slate-50 dark:bg-slate-800/60">
+        <tr v-if="editing">
           <th></th>
           <th
             v-for="(_, c) in players"
@@ -90,7 +97,7 @@ const removeClass =
           </th>
           <th class="border-l border-slate-200 dark:border-slate-800"></th>
         </tr>
-        <tr class="bg-slate-50 dark:bg-slate-800/60">
+        <tr>
           <th
             class="px-1.5 py-2 text-xs font-medium text-slate-400"
             :class="editing ? 'w-24' : 'w-10'"
@@ -103,12 +110,13 @@ const removeClass =
             class="min-w-16 border-l border-slate-200 px-1 py-1 dark:border-slate-800"
             :class="colClass(c)"
           >
-            <input
-              :value="name"
-              class="w-full rounded-md bg-transparent px-1 py-1.5 text-center text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-sky-400 dark:focus:bg-slate-900"
+            <DoneInput
+              :model-value="name"
+              input-class="w-full rounded-md bg-transparent px-1 py-1.5 text-center text-sm font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-sky-400 dark:focus:bg-slate-900"
               :placeholder="`選手${c + 1}`"
+              :aria-label="`選手${c + 1}名稱`"
               maxlength="10"
-              @input="emit('rename', c, $event.target.value)"
+              @update:model-value="emit('rename', c, $event)"
             />
           </th>
           <th class="w-10 border-l border-slate-200 dark:border-slate-800">
@@ -202,11 +210,42 @@ const removeClass =
           <td
             v-for="(t, c) in totals"
             :key="c"
-            class="border-l border-slate-200 py-3 text-xl font-extrabold tabular-nums dark:border-slate-700"
-            :class="[scoreClass(t), colClass(c)]"
+            class="border-l border-slate-200 py-3 text-xl font-extrabold tabular-nums transition-opacity dark:border-slate-700"
+            :class="[
+              scoreClass(t),
+              colClass(c),
+              struck[c] && 'line-through decoration-2 opacity-40',
+            ]"
             data-test="total"
           >
             {{ t === 0 ? '0' : fmt(t) }}
+          </td>
+          <td class="border-l border-slate-200 dark:border-slate-700"></td>
+        </tr>
+        <!-- 劃掉各欄總分（例如已結清） -->
+        <tr class="bg-slate-50 dark:bg-slate-800/60">
+          <td></td>
+          <td
+            v-for="(_, c) in totals"
+            :key="c"
+            class="border-l border-slate-200 pb-2 dark:border-slate-700"
+            :class="colClass(c)"
+          >
+            <button
+              class="mx-auto grid size-8 place-items-center rounded-lg transition"
+              :class="
+                struck[c]
+                  ? 'bg-slate-900 text-white hover:bg-black dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200'
+                  : 'text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200'
+              "
+              :aria-pressed="!!struck[c]"
+              :aria-label="struck[c] ? '取消劃掉總分' : '劃掉總分'"
+              :title="struck[c] ? '取消劃掉' : '劃掉總分'"
+              data-test="toggle-struck"
+              @click="emit('toggle-struck', c)"
+            >
+              <StrikeIcon />
+            </button>
           </td>
           <td class="border-l border-slate-200 dark:border-slate-700"></td>
         </tr>
