@@ -29,6 +29,7 @@ nvm use          # Switch to the Node.js version in .nvmrc (run `nvm install` fi
 npm install
 npm run dev      # Start the dev server
 npm run build    # Build to dist/ (relative paths, deployable to GitHub Pages or any static host)
+npm run preview  # Serve the built dist/ locally to check the production build
 npm test         # Run unit and component tests (Vitest)
 npm run lint     # Lint with ESLint (`npm run lint:fix` to auto-fix)
 npm run format   # Format with Prettier (`npm run format:check` to check only)
