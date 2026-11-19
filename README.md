@@ -28,7 +28,7 @@ Requires [nvm](https://github.com/nvm-sh/nvm); the Node.js version is pinned in 
 nvm use          # Switch to the Node.js version in .nvmrc (run `nvm install` first if missing)
 npm install
 npm run dev      # Start the dev server
-npm run build    # Build to dist/ (relative paths, deployable to GitHub Pages or any static host)
+npm run build    # Build to dist/ (relative paths, deployable to GitHub Pages, GitLab Pages, or any static host)
 npm run preview  # Serve the built dist/ locally to check the production build
 npm test         # Run unit and component tests (Vitest)
 npm run lint     # Lint with ESLint (`npm run lint:fix` to auto-fix)
@@ -161,13 +161,18 @@ Omitted to keep the diagram readable: `App.vue` also imports `icons.js` and `sco
 
 ## Deployment
 
-Every push to `main` is linted, tested, built, and deployed to GitHub Pages by GitHub Actions (`.github/workflows/deploy.yml`):
+Every push to `main` is linted, tested, built, and deployed to both GitHub Pages and GitLab Pages. Both pipelines run the same steps:
 
 ```text
- push main → npm ci → lint → format:check → vitest → vite build → GitHub Pages
+ push main → npm ci → lint → format:check → vitest → vite build → Pages
 ```
 
-https://saberliou.github.io/BadmintonBusinessMatchWhiteboard
+| Host         | Pipeline                                           | URL                                                          |
+| ------------ | -------------------------------------------------- | ------------------------------------------------------------ |
+| GitHub Pages | GitHub Actions (`.github/workflows/deploy.yml`)    | https://saberliou.github.io/BadmintonBusinessMatchWhiteboard |
+| GitLab Pages | GitLab CI/CD (`.gitlab-ci.yml`, `build` → `pages`) | https://saberliou.gitlab.io/BadmintonBusinessMatchWhiteboard |
+
+The build uses relative paths (`base: './'`), so the same output works under either URL. Push to each remote to trigger its pipeline (e.g. `git push github main` and `git push gitlab main`).
 
 ## License
 

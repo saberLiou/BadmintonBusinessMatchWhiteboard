@@ -1,0 +1,46 @@
+# Deploy to GitLab Pages (mirrors .github/workflows/deploy.yml)
+
+# Run only on the default branch (push, or "Run pipeline" in the GitLab UI)
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - build
+  - deploy
+
+# Keep the major version in sync with .nvmrc
+default:
+  image: node:24
+
+build:
+  stage: build
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm run lint
+    - npm run format:check
+    - npm test
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 day
+
+pages:
+  stage: deploy
+  needs: [build]
+  # Only one deployment at a time; new pipelines queue instead of interrupting
+  resource_group: pages
+  script:
+    - echo "Publishing dist/ to GitLab Pages"
+  pages:
+    publish: dist
+  environment:
+    name: gitlab-pages
+    url: $CI_PAGES_URL
