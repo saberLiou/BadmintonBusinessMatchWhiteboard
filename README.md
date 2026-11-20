@@ -51,6 +51,9 @@ src/
 ├─ composables/         # State & logic: useBoard (data & persistence), useDragSort,
 │                       #   useConfirm, useToast, useTheme
 └─ utils/               # Pure functions, no Vue: score, renderImage, shareImage
+public/
+├─ logo.svg             # Logo (README, favicon for modern browsers)
+└─ logo.ico             # Favicon fallback (16–256px)
 tests/                  # Vitest tests
 ```
 
