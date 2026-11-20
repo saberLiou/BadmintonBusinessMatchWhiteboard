@@ -6,7 +6,9 @@
 
 <p align="center">
   A simple one-page whiteboard for recording badminton money-match results.<br />
-  <a href="https://saberliou.github.io/BadmintonBusinessMatchWhiteboard/">Live demo</a>
+  Live demo:
+  <a href="https://saberliou.github.io/BadmintonBusinessMatchWhiteboard/">GitHub Pages</a> ·
+  <a href="https://saberliou.gitlab.io/BadmintonBusinessMatchWhiteboard/">GitLab Pages</a>
 </p>
 
 ## Features
@@ -161,16 +163,17 @@ Omitted to keep the diagram readable: `App.vue` also imports `icons.js` and `sco
 
 ## Deployment
 
-Every push to `main` is linted, tested, built, and deployed to both GitHub Pages and GitLab Pages. Both pipelines run the same steps:
+GitHub and GitLab run the same pipeline. Pull requests (GitHub) and merge requests (GitLab) only run the checks; pushes to the default branch (`main`) also deploy to Pages:
 
 ```text
+ PR / MR   → npm ci → lint → format:check → vitest → vite build
  push main → npm ci → lint → format:check → vitest → vite build → Pages
 ```
 
-| Host         | Pipeline                                           | URL                                                          |
-| ------------ | -------------------------------------------------- | ------------------------------------------------------------ |
-| GitHub Pages | GitHub Actions (`.github/workflows/deploy.yml`)    | https://saberliou.github.io/BadmintonBusinessMatchWhiteboard |
-| GitLab Pages | GitLab CI/CD (`.gitlab-ci.yml`, `build` → `pages`) | https://saberliou.gitlab.io/BadmintonBusinessMatchWhiteboard |
+| Host         | Pipeline                                        | URL                                                          |
+| ------------ | ----------------------------------------------- | ------------------------------------------------------------ |
+| GitHub Pages | GitHub Actions (`.github/workflows/deploy.yml`) | https://saberliou.github.io/BadmintonBusinessMatchWhiteboard |
+| GitLab Pages | GitLab CI/CD (`.gitlab-ci.yml`)                 | https://saberliou.gitlab.io/BadmintonBusinessMatchWhiteboard |
 
 The build uses relative paths (`base: './'`), so the same output works under either URL. Push to each remote to trigger its pipeline (e.g. `git push github main` and `git push gitlab main`).
 
