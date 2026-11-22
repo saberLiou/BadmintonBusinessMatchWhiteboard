@@ -6,9 +6,9 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-# Keep the major version in sync with .nvmrc
+# Keep the version in sync with .nvmrc
 default:
-  image: node:24
+  image: node:24.22.3
 
 .checks:
   cache:
