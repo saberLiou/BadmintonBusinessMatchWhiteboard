@@ -175,19 +175,19 @@ Omitted to keep the diagram readable: `App.vue` also imports `icons.js` and `sco
 
 ## Deployment
 
-GitHub and GitLab run the same pipeline. Pull requests (GitHub) and merge requests (GitLab) only run the checks; pushes to the default branch (`main`) also deploy to Pages:
+Pull requests on GitHub only run the checks; pushes to the default branch (`main`) also deploy, to GitHub Pages and GitLab Pages respectively:
 
 ```text
- PR / MR   → npm ci → lint → format:check → vitest → vite build
- push main → npm ci → lint → format:check → vitest → vite build → Pages
+ PR (GitHub) → npm ci → lint → format:check → vitest → vite build
+ push main   → npm ci → lint → format:check → vitest → vite build → Pages
 ```
 
-| Host         | Pipeline                                        | URL                                                          |
-| ------------ | ----------------------------------------------- | ------------------------------------------------------------ |
-| GitHub Pages | GitHub Actions (`.github/workflows/deploy.yml`) | https://saberliou.github.io/BadmintonBusinessMatchWhiteboard |
-| GitLab Pages | GitLab CI/CD (`.gitlab-ci.yml`)                 | https://saberliou.gitlab.io/BadmintonBusinessMatchWhiteboard |
+| Host         | Pipeline                                           | URL                                                          |
+| ------------ | -------------------------------------------------- | ------------------------------------------------------------ |
+| GitHub Pages | GitHub Actions (`.github/workflows/deploy.yml`)    | https://saberliou.github.io/BadmintonBusinessMatchWhiteboard |
+| GitLab Pages | GitLab CI/CD (`.gitlab-ci.yml`, `build` → `pages`) | https://saberliou.gitlab.io/BadmintonBusinessMatchWhiteboard |
 
-The build uses relative paths (`base: './'`), so the same output works under either URL. Push to each remote to trigger its pipeline (e.g. `git push github main` and `git push gitlab main`).
+The build uses relative paths (`base: './'`), so the same output works under either URL.
 
 ## License
 

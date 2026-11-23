@@ -1,16 +1,20 @@
 # Build and deploy to GitLab Pages (mirrors .github/workflows/deploy.yml)
-# Merge requests only run the checks; the default branch also deploys.
 
+# Run only on the default branch (push, or "Run pipeline" in the GitLab UI)
 workflow:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - build
+  - deploy
 
 # Keep the version in sync with .nvmrc
 default:
   image: node:24.22.3
 
-.checks:
+build:
+  stage: build
   cache:
     key:
       files:
@@ -23,20 +27,18 @@ default:
     - npm run format:check
     - npm test
     - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 day
 
-# Merge requests: checks only, no artifact
-build:
-  extends: .checks
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-
-# Default branch: checks + build, then publish dist/ as the Pages artifact
 pages:
-  extends: .checks
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  stage: deploy
+  needs: [build]
   # Only one deployment at a time; new pipelines queue instead of interrupting
   resource_group: pages
+  script:
+    - echo "Publishing dist/ to GitLab Pages"
   pages:
     publish: dist
   environment:
