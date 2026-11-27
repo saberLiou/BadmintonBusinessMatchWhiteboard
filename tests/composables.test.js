@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { findTargetIndex } from '../src/composables/useDragSort'
 import { useConfirm } from '../src/composables/useConfirm'
 import { useToast } from '../src/composables/useToast'
+import { useLongPress, LONG_PRESS_MS, MOVE_TOLERANCE } from '../src/composables/useLongPress'
 import { imageFileName } from '../src/utils/shareImage'
 
 describe('findTargetIndex', () => {
@@ -32,6 +33,58 @@ describe('findTargetIndex', () => {
 
   it('沒有項目時維持原索引', () => {
     expect(findTargetIndex([], 10, 3)).toBe(3)
+  })
+})
+
+describe('useLongPress', () => {
+  afterEach(() => vi.useRealTimers())
+  const down = { button: 0, clientX: 10, clientY: 10 }
+
+  it('按住超過時間才觸發，並帶入額外參數', () => {
+    vi.useFakeTimers()
+    const fn = vi.fn()
+    const lp = useLongPress(fn)
+    lp.down(down, 'row', 3)
+    vi.advanceTimersByTime(LONG_PRESS_MS - 1)
+    expect(fn).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(fn).toHaveBeenCalledWith('row', 3)
+  })
+
+  it('小幅移動不取消，超過容許距離即取消', () => {
+    vi.useFakeTimers()
+    const fn = vi.fn()
+    const lp = useLongPress(fn)
+    lp.down(down)
+    lp.move({ clientX: 10 + MOVE_TOLERANCE - 1, clientY: 10 })
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    expect(fn).toHaveBeenCalledTimes(1)
+    lp.down(down)
+    lp.move({ clientX: 10, clientY: 10 + MOVE_TOLERANCE + 1 })
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    expect(fn).toHaveBeenCalledTimes(1)
+  })
+
+  it('非主要按鍵不啟動', () => {
+    vi.useFakeTimers()
+    const fn = vi.fn()
+    useLongPress(fn).down({ ...down, button: 2 })
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    expect(fn).not.toHaveBeenCalled()
+  })
+
+  it('長按後只吃掉一次 click，下次按下即重設', () => {
+    vi.useFakeTimers()
+    const lp = useLongPress(() => {})
+    lp.down(down)
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    expect(lp.consumeClick()).toBe(true)
+    expect(lp.consumeClick()).toBe(false)
+    lp.down(down)
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    lp.down(down) // 長按後沒有 click，下一次按下不應被吃掉
+    lp.cancel()
+    expect(lp.consumeClick()).toBe(false)
   })
 })
 

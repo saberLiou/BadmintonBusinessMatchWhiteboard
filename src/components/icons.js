@@ -13,18 +13,27 @@ export const GripIcon = (props) =>
   )
 GripIcon.props = ['horizontal']
 
-export const RemoveIcon = () =>
+/** 垃圾桶（刪除局、移除選手） */
+export const TrashIcon = () =>
   h(
     'svg',
     {
       viewBox: '0 0 20 20',
       fill: 'none',
       stroke: 'currentColor',
-      'stroke-width': 2,
+      'stroke-width': 1.6,
       'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
       class: 'size-4',
     },
-    [h('path', { d: 'M5 5l10 10M15 5L5 15' })],
+    [
+      h('path', { d: 'M3.5 5.5h13' }),
+      h('path', { d: 'M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5' }),
+      h('path', {
+        d: 'M5 5.5l.8 10a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4l.8-10',
+      }),
+      h('path', { d: 'M8.5 9v5M11.5 9v5' }),
+    ],
   )
 
 export const CheckIcon = () =>
@@ -42,12 +51,24 @@ export const CheckIcon = () =>
     [h('path', { d: 'M4.5 10.5l3.5 3.5 7.5-8' })],
   )
 
-export const PencilIcon = () =>
-  h('svg', { viewBox: '0 0 20 20', fill: 'currentColor', class: 'size-4' }, [
-    h('path', {
-      d: 'M13.59 3.59a2 2 0 0 1 2.82 2.82l-.79.8-2.83-2.83.8-.79ZM11.73 5.44 3.5 13.67V16.5h2.83l8.23-8.23-2.83-2.83Z',
-    }),
-  ])
+/** 說明（圓圈 i） */
+export const InfoIcon = () =>
+  h(
+    'svg',
+    {
+      viewBox: '0 0 20 20',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': 1.8,
+      'stroke-linecap': 'round',
+      class: 'size-5',
+    },
+    [
+      h('circle', { cx: 10, cy: 10, r: 7.5 }),
+      h('path', { d: 'M10 9v5' }),
+      h('circle', { cx: 10, cy: 6.25, r: 0.6, fill: 'currentColor' }),
+    ],
+  )
 
 /** 刪除線（劃掉總分） */
 export const StrikeIcon = () =>

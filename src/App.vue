@@ -11,7 +11,8 @@ import ScorePicker from './components/ScorePicker.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import AppToast from './components/AppToast.vue'
 import DoneInput from './components/DoneInput.vue'
-import { PencilIcon, CheckIcon } from './components/icons'
+import HelpDialog from './components/HelpDialog.vue'
+import { InfoIcon, CheckIcon } from './components/icons'
 
 const board = useBoard()
 const { title, players, rows, struck, totals, displayTitle } = board
@@ -19,7 +20,7 @@ const { isDark, toggleTheme } = useTheme()
 const { dialog, askConfirm, closeDialog } = useConfirm()
 const { showToast } = useToast()
 
-const editing = ref(false) // 編輯模式：顯示拖曳與刪除
+const sorting = ref(false) // 排序模式：長按局號或選手名稱進入，顯示拖曳把手
 const picker = ref(null) // { r, c }
 
 const playerLabel = (c) => players.value[c] || `選手${c + 1}`
@@ -28,7 +29,7 @@ watch(displayTitle, (t) => (document.title = t), { immediate: true })
 
 // ---------- 分數 ----------
 function openPicker(r, c) {
-  if (!editing.value) picker.value = { r, c }
+  if (!sorting.value) picker.value = { r, c }
 }
 function selectScore(v) {
   if (!picker.value) return
@@ -36,11 +37,36 @@ function selectScore(v) {
   picker.value = null
 }
 
-// ---------- 編輯 ----------
-function toggleEditing() {
-  editing.value = !editing.value
+// ---------- 排序 ----------
+function startSorting() {
+  sorting.value = true
   picker.value = null
 }
+
+// ---------- 說明（第一次開啟時自動顯示） ----------
+const HELP_SEEN_KEY = 'bbmw-help-seen'
+const helpOpen = ref(false)
+
+function openHelp() {
+  picker.value = null
+  helpOpen.value = true
+}
+function closeHelp() {
+  helpOpen.value = false
+  try {
+    localStorage.setItem(HELP_SEEN_KEY, '1')
+  } catch {
+    // 無法保存時下次開啟會再顯示一次
+  }
+}
+onMounted(() => {
+  try {
+    if (localStorage.getItem(HELP_SEEN_KEY)) return
+  } catch {
+    // 讀不到時照樣顯示說明
+  }
+  helpOpen.value = true
+})
 
 async function removeRow(r) {
   const filled = rowFilled(rows.value[r])
@@ -95,7 +121,9 @@ async function share() {
 function onKeydown(e) {
   if (e.key !== 'Escape') return
   if (dialog.value) closeDialog(false)
-  else picker.value = null
+  else if (helpOpen.value) closeHelp()
+  else if (picker.value) picker.value = null
+  else sorting.value = false
 }
 onMounted(() => window.addEventListener('keydown', onKeydown))
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
@@ -125,17 +153,17 @@ const pickerName = computed(() => (picker.value ? playerLabel(picker.value.c) : 
       <button
         class="grid size-10 shrink-0 place-items-center rounded-full border shadow-sm transition"
         :class="
-          editing
+          sorting
             ? 'border-slate-900 bg-slate-900 text-white hover:bg-black dark:border-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200'
             : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
         "
-        :aria-label="editing ? '完成編輯' : '編輯'"
-        :title="editing ? '完成' : '編輯'"
-        :aria-pressed="editing"
-        @click="toggleEditing"
+        :aria-label="sorting ? '完成排序' : '操作說明'"
+        :title="sorting ? '完成排序' : '操作說明'"
+        :data-test="sorting ? 'finish-sorting' : 'open-help'"
+        @click="sorting ? (sorting = false) : openHelp()"
       >
-        <CheckIcon v-if="editing" />
-        <PencilIcon v-else />
+        <CheckIcon v-if="sorting" />
+        <InfoIcon v-else />
       </button>
       <button
         class="grid size-10 shrink-0 place-items-center rounded-full border border-slate-300 bg-white text-lg shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700"
@@ -153,7 +181,7 @@ const pickerName = computed(() => (picker.value ? playerLabel(picker.value.c) : 
       :rows="rows"
       :totals="totals"
       :struck="struck"
-      :editing="editing"
+      :sorting="sorting"
       :active-cell="picker"
       @pick="openPicker"
       @rename="board.renamePlayer"
@@ -163,6 +191,7 @@ const pickerName = computed(() => (picker.value ? playerLabel(picker.value.c) : 
       @move-row="board.moveRow"
       @move-player="board.movePlayer"
       @toggle-struck="board.toggleStruck"
+      @start-sorting="startSorting"
     />
 
     <button
@@ -200,6 +229,7 @@ const pickerName = computed(() => (picker.value ? playerLabel(picker.value.c) : 
       @select="selectScore"
       @close="picker = null"
     />
+    <HelpDialog :open="helpOpen" @close="closeHelp" />
     <ConfirmDialog />
     <AppToast />
   </div>

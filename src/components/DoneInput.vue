@@ -16,9 +16,11 @@ const emit = defineEmits(['update:modelValue', 'done'])
 const inputEl = ref(null)
 const focused = ref(false)
 
-function onBlur() {
+defineExpose({ focus: () => inputEl.value?.focus() })
+
+function onBlur(e) {
   focused.value = false
-  emit('done')
+  emit('done', e)
 }
 </script>
 
@@ -32,7 +34,7 @@ function onBlur() {
       :class="[inputClass, focused && 'pr-8']"
       @input="emit('update:modelValue', $event.target.value)"
       @focus="focused = true"
-      @blur="onBlur"
+      @blur="onBlur($event)"
       @keydown.enter="inputEl.blur()"
     />
     <!-- 按下時不讓輸入框失焦，才收得到 click -->

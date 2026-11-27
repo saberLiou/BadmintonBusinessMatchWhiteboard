@@ -18,7 +18,9 @@
 - The player row stays pinned to the top while scrolling through rounds.
 - A toggle under each total strikes it out, e.g. once that player has settled up.
 - Text inputs show a ✓ button while typing, since mobile keyboards don't always have a "Done" key.
-- Edit mode: add, remove, and drag to reorder players and rounds.
+- Tap a round number or player name to show its delete button; a tapped player name also becomes editable. Tapping elsewhere (or the round number again, or ✓ / Enter after renaming) hides it.
+- Long-press (or right-click) a round number or player name to enter sort mode, then drag the grips to reorder rounds and players (arrow keys work too); ✓ in the top-right corner exits.
+- An ⓘ button opens a help dialog, shown automatically on first visit.
 - Share the board as a PNG image (falls back to download when sharing isn't supported).
 - Light and dark themes; everything is saved in the browser's localStorage.
 
@@ -56,9 +58,9 @@ Tech stack: Vue 3 + Vite + Tailwind CSS v4, tested with Vitest + Vue Test Utils,
 src/
 ├─ App.vue              # Page layout: header, whiteboard, bottom action bar
 ├─ components/          # UI only, props in / emits out: ScoreTable, ScorePicker, DoneInput,
-│                       #   ConfirmDialog, AppToast, icons
+│                       #   ConfirmDialog, HelpDialog, AppToast, icons
 ├─ composables/         # State & logic: useBoard (data & persistence), useDragSort,
-│                       #   useConfirm, useToast, useTheme
+│                       #   useLongPress, useConfirm, useToast, useTheme
 └─ utils/               # Pure functions, no Vue: score, renderImage, shareImage
 public/
 ├─ logo.svg             # Logo (README, favicon for modern browsers)
@@ -91,7 +93,7 @@ Arrows point from the importing file to the imported one.
  score.js ◀──────────────────────┴─────────────────────────────────────────────────┘
 ```
 
-Omitted to keep the diagram readable: `App.vue` also imports `icons.js` and `score.js`, and `ScoreTable.vue` imports `MIN_PLAYERS` from `useBoard`.
+Omitted to keep the diagram readable: `App.vue` also imports `icons.js`, `score.js`, and `HelpDialog`, and `ScoreTable.vue` also imports `useLongPress`, plus `MIN_PLAYERS` from `useBoard`.
 
 ### Data flow when entering a score
 
@@ -139,7 +141,7 @@ Omitted to keep the diagram readable: `App.vue` also imports `icons.js` and `sco
 ### Delete and clear
 
 ```text
- delete (edit mode) / "Clear" button
+ delete (tap to select) / "Clear" button
              │
              ▼
      needs confirmation? ──── no (empty round) ───────┐
