@@ -18,9 +18,26 @@ const focused = ref(false)
 
 defineExpose({ focus: () => inputEl.value?.focus() })
 
+/**
+ * Enter 結束輸入；但注音等輸入法選字時的 Enter 只是確認文字，不可結束。
+ * Safari 會先送 compositionend 再送這個 Enter（isComposing 已是 false），只能靠 keyCode 229 判斷。
+ */
+function onEnter(e) {
+  if (e.isComposing || e.keyCode === 229) return
+  commit()
+}
+
+// 由 Enter 或完成鈕主動結束輸入時，done 事件的第二個參數為 true
+let committing = false
+function commit() {
+  committing = true
+  inputEl.value.blur()
+}
+
 function onBlur(e) {
   focused.value = false
-  emit('done', e)
+  emit('done', e, committing)
+  committing = false
 }
 </script>
 
@@ -35,7 +52,7 @@ function onBlur(e) {
       @input="emit('update:modelValue', $event.target.value)"
       @focus="focused = true"
       @blur="onBlur($event)"
-      @keydown.enter="inputEl.blur()"
+      @keydown.enter="onEnter"
     />
     <!-- 按下時不讓輸入框失焦，才收得到 click -->
     <button
@@ -47,7 +64,7 @@ function onBlur(e) {
       data-test="done-input"
       @pointerdown.prevent
       @mousedown.prevent
-      @click="inputEl.blur()"
+      @click="commit"
     >
       <CheckIcon class="size-4!" />
     </button>

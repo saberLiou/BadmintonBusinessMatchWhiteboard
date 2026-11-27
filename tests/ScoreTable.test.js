@@ -112,6 +112,19 @@ describe('ScoreTable', () => {
       w.unmount()
     })
 
+    it('注音選字時按 Enter（Safari：keyCode 229）不結束改名', async () => {
+      const w = mountTable({}, { attachTo: document.body })
+      await w.findAll('[data-test="player-cell"]')[1].trigger('click')
+      const input = w.findAll('input')[1]
+      await input.trigger('keydown', { key: 'Enter', keyCode: 229 })
+      expect(document.activeElement).toBe(input.element)
+      expect(w.find('[data-test="remove-player"]').exists()).toBe(true)
+      await input.trigger('keydown', { key: 'Enter', keyCode: 13 })
+      expect(document.activeElement).not.toBe(input.element)
+      expect(w.find('[data-test="remove-player"]').exists()).toBe(false)
+      w.unmount()
+    })
+
     it('在選取範圍外點擊即取消選取，但按下時版面不變', async () => {
       const w = mountTable({}, { attachTo: document.body })
       await w.findAll('[data-test="row-number"]')[0].trigger('click')
@@ -184,10 +197,68 @@ describe('ScoreTable', () => {
       expect(w.emitted('start-sorting')).toBeUndefined()
     })
 
+    it('在改名中的輸入框長按（contextmenu）不進入排序，保留原生選單', async () => {
+      const w = mountTable()
+      await w.findAll('[data-test="player-cell"]')[0].trigger('click')
+      const ev = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
+      w.findAll('input')[0].element.dispatchEvent(ev)
+      expect(ev.defaultPrevented).toBe(false)
+      expect(w.emitted('start-sorting')).toBeUndefined()
+    })
+
     it('右鍵（contextmenu）也會進入排序', async () => {
       const w = mountTable()
       await w.findAll('[data-test="player-cell"]')[1].trigger('contextmenu')
       expect(w.emitted('start-sorting')).toHaveLength(1)
+    })
+  })
+
+  // iOS：在輸入框長按（放大鏡／選字選單）後，pointerup 與 pointercancel 可能都不會送出，
+  // 下一次點擊也可能只收到 pointerdown
+  describe('iOS 長按輸入框後漏掉 pointerup', () => {
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    const selectAndLongPressInput = async (w, c = 1) => {
+      await w.findAll('[data-test="player-cell"]')[c].trigger('click')
+      await w.findAll('input')[c].trigger('pointerdown', { button: 0 }) // 沒有 pointerup
+      vi.advanceTimersByTime(800)
+    }
+
+    it('按鍵盤 Enter 仍會收起垃圾桶', async () => {
+      const w = mountTable({}, { attachTo: document.body })
+      await selectAndLongPressInput(w)
+      await w.findAll('input')[1].trigger('keydown', { key: 'Enter', keyCode: 13 })
+      expect(w.find('[data-test="remove-player"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('按完成鈕只收到 pointerdown 時不會進入排序', async () => {
+      const w = mountTable({}, { attachTo: document.body })
+      await selectAndLongPressInput(w)
+      await w.findAll('[data-test="done-input"]')[1].trigger('pointerdown', { button: 0 })
+      vi.advanceTimersByTime(LONG_PRESS_MS * 2)
+      expect(w.emitted('start-sorting')).toBeUndefined()
+      w.unmount()
+    })
+
+    it('按完成鈕會收起垃圾桶', async () => {
+      const w = mountTable({}, { attachTo: document.body })
+      await selectAndLongPressInput(w)
+      await w.findAll('[data-test="done-input"]')[1].trigger('pointerdown', { button: 0 })
+      await w.findAll('[data-test="done-input"]')[1].trigger('click')
+      expect(w.find('[data-test="remove-player"]').exists()).toBe(false)
+      w.unmount()
+    })
+
+    it('其他方式失焦（如 iOS 鍵盤上方的「完成」）也會收起垃圾桶', async () => {
+      const w = mountTable({}, { attachTo: document.body })
+      await selectAndLongPressInput(w)
+      vi.advanceTimersByTime(700) // 長按後再去按鍵盤上方的「完成」，總計已超過 1 秒
+      w.findAll('input')[1].element.blur()
+      await nextTick()
+      expect(w.find('[data-test="remove-player"]').exists()).toBe(false)
+      w.unmount()
     })
   })
 

@@ -17,7 +17,7 @@
 - Rounds where wins and losses don't cancel out are flagged with ⚠.
 - The player row stays pinned to the top while scrolling through rounds.
 - A toggle under each total strikes it out, e.g. once that player has settled up.
-- Text inputs show a ✓ button while typing, since mobile keyboards don't always have a "Done" key.
+- Text inputs show a ✓ button while typing, since mobile keyboards don't always have a "Done" key. Enter also finishes, except while an IME such as Zhuyin is still composing, where it only confirms the text.
 - Tap a round number or player name to show its delete button; a tapped player name also becomes editable. Tapping elsewhere (or the round number again, or ✓ / Enter after renaming) hides it.
 - Long-press (or right-click) a round number or player name to enter sort mode, then drag the grips to reorder rounds and players (arrow keys work too); ✓ in the top-right corner exits.
 - An ⓘ button opens a help dialog, shown automatically on first visit.

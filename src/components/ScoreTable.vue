@@ -84,9 +84,17 @@ function startSorting() {
   emit('start-sorting')
 }
 
+/** 右鍵／Android 長按：進入排序；但改名中的輸入框保留原生選單（選字、貼上） */
+function onContextMenu(e) {
+  if (e.target.tagName === 'INPUT') return
+  e.preventDefault()
+  startSorting()
+}
+
 function onPressDown(e) {
-  // 改名中的輸入框保留原生的長按（選字、游標）
-  if (props.sorting || e.target.tagName === 'INPUT') return
+  // 輸入框保留原生的長按（選字、游標）；完成鈕與刪除鈕是按鈕，不當作長按起點
+  if (props.sorting) return
+  if (e.target.closest('input, [data-test="done-input"], [data-test="remove-row"]')) return
   longPress.down(e)
 }
 
@@ -109,11 +117,17 @@ function onNameFocus(c) {
   if (!props.sorting) selected.value = { type: 'col', index: c }
 }
 
-/** 結束改名（完成鈕、Enter 或點別處）即取消選取；以 Tab 移到同一欄的刪除按鈕時保留 */
-function onNameDone(c, e) {
-  if (e?.relatedTarget?.closest?.(`[data-select-zone="${zoneKey('col', c)}"]`)) return
-  // 因按下別處而失焦時，交給點擊完成後再取消（見下方），避免按下與放開之間版面位移
-  if (pressing) return
+/**
+ * 結束改名即取消選取：
+ * - Enter／完成鈕（committed）一律取消
+ * - 以 Tab 移到同一欄的刪除按鈕時保留
+ * - 因按下別處而失焦時，交給點擊完成後再取消（見下方），避免按下與放開之間版面位移
+ */
+function onNameDone(c, e, committed) {
+  if (!committed) {
+    if (e?.relatedTarget?.closest?.(`[data-select-zone="${zoneKey('col', c)}"]`)) return
+    if (isPressing()) return
+  }
   if (isSelected('col', c)) selected.value = null
 }
 
@@ -125,16 +139,20 @@ function removePlayer(c) {
 
 // 在目前選取範圍外點擊、開始捲動，或按 Esc，即取消選取。
 // 不在按下時就取消：取消會收起表頭的刪除列、改變欄寬，使放開時指標落在別的格子上而點不到。
-let pressing = false
+// 是否有指標按著。iOS 在輸入框長按後可能不送 pointerup／pointercancel，
+// 所以按下超過 PRESS_STALE_MS 就不再視為按著，避免狀態卡住
+const PRESS_STALE_MS = 1000
+let pressedAt = 0
+const isPressing = () => pressedAt > 0 && Date.now() - pressedAt < PRESS_STALE_MS
 function clearIfOutside(e) {
   if (!selected.value) return
   const zone = e.target.closest?.('[data-select-zone]')?.dataset.selectZone
   if (zone !== zoneKey(selected.value.type, selected.value.index)) selected.value = null
 }
-const onDocPointerDown = () => (pressing = true)
-const onDocPointerUp = () => (pressing = false)
+const onDocPointerDown = () => (pressedAt = Date.now())
+const onDocPointerUp = () => (pressedAt = 0)
 function onDocPointerCancel(e) {
-  pressing = false
+  pressedAt = 0
   clearIfOutside(e) // 捲動不會產生 click
 }
 function onDocKeydown(e) {
@@ -253,7 +271,7 @@ const wideFirstCol = () => props.sorting || selected.value?.type === 'row'
             @pointerup="longPress.cancel"
             @pointercancel="longPress.cancel"
             @pointerleave="longPress.cancel"
-            @contextmenu.prevent="startSorting"
+            @contextmenu="onContextMenu"
           >
             <!-- 未選取時輸入框不接收指標，讓整格可長按；選取後才可直接點選文字 -->
             <DoneInput
@@ -268,7 +286,7 @@ const wideFirstCol = () => props.sorting || selected.value?.type === 'row'
               :tabindex="sorting ? -1 : undefined"
               maxlength="10"
               @focus="onNameFocus(c)"
-              @done="onNameDone(c, $event)"
+              @done="(e, committed) => onNameDone(c, e, committed)"
               @update:model-value="emit('rename', c, $event)"
             />
           </th>
@@ -303,7 +321,7 @@ const wideFirstCol = () => props.sorting || selected.value?.type === 'row'
             @pointerup="longPress.cancel"
             @pointercancel="longPress.cancel"
             @pointerleave="longPress.cancel"
-            @contextmenu.prevent="startSorting"
+            @contextmenu="onContextMenu"
           >
             <!-- 排序模式：局號與拖曳把手 -->
             <div v-if="sorting" class="flex items-center justify-between gap-1">
